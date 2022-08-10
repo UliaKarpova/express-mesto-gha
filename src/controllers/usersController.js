@@ -1,5 +1,9 @@
 const User = require('../models/user');
 
+const uncorrectDataErrorMessage = 'Переданы некорректные данные';
+const notFoundErrorMessage = 'Пользователь не найден';
+const errorMessage = 'Произошла ошибка';
+
 module.exports.createUser = (req, res) => {
   const { name, about, avatar } = req.body;
   User.create({
@@ -10,28 +14,34 @@ module.exports.createUser = (req, res) => {
     })
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        res.status(400).send({ message: 'Ошибка валидации' });
+        res.status(400).send({ message: uncorrectDataErrorMessage });
         return;
       }
-      res.status(500).send({ message: 'Произошла ошибка' });
+      res.status(500).send({ message: errorMessage });
     });
 };
 
 module.exports.getUsers = (req, res) => {
   User.find({})
     .then((users) => res.send({ data: users }))
-    .catch(() => res.status(500).send({ message: 'Произошла ошибка' }));
+    .catch(() => res.status(500).send({ message: errorMessage }));
 };
 
 module.exports.getUserById = (req, res) => {
   User.findById(req.params.userId)
-    .then((user) => res.send(user))
-    .catch((err) => {
-      if (err.name === 'CastError') {
-        res.status(404).send({ message: 'Пользователь не найден' });
+    .then((user) => {
+      if (!user) {
+        res.status(404).send({ message: notFoundErrorMessage });
         return;
       }
-      res.status(500).send({ message: 'Произошла ошибка' });
+      res.send(user);
+    })
+    .catch((err) => {
+      if (err.name === 'CastError') {
+        res.status(400).send({ message: uncorrectDataErrorMessage });
+        return;
+      }
+      res.status(500).send({ message: errorMessage });
     });
 };
 
@@ -45,15 +55,11 @@ module.exports.updateUserInfo = (req, res) => {
   })
     .then((user) => res.send({ user }))
     .catch((err) => {
-      if (err.name === 'CastError') {
-        res.status(404).send({ message: 'Пользователь не найден' });
+      if (err.name === 'CastError' || err.name === 'ValidationError') {
+        res.status(400).send({ message: uncorrectDataErrorMessage });
         return;
       }
-      if (err.name === 'ValidationError') {
-        res.status(400).send({ message: 'Ошибка валидации' });
-        return;
-      }
-      res.status(500).send({ message: 'Произошла ошибка' });
+      res.status(500).send({ message: errorMessage });
     });
 };
 
@@ -62,21 +68,16 @@ module.exports.updateUserAvatar = (req, res) => {
     avatar: req.body.avatar,
   }, {
     new: true,
-    upsert: true,
     runValidators: true,
   })
     .then((avatar) => {
       res.send({ avatar });
     })
     .catch((err) => {
-      if (err.name === 'CastError') {
-        res.status(404).send({ message: 'Пользователь не найден' });
+      if (err.name === 'CastError' || err.name === 'ValidationError') {
+        res.status(400).send({ message: uncorrectDataErrorMessage });
         return;
       }
-      if (err.name === 'ValidationError') {
-        res.status(400).send({ message: 'Ошибка валидации' });
-        return;
-      }
-      res.status(500).send({ message: 'Произошла ошибка' });
+      res.status(500).send({ message: errorMessage });
     });
 };
