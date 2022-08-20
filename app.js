@@ -1,6 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cookieParser = require('cookie-parser');
+const { celebrate, Joi } = require('celebrate');
 
 const { login, createUser } = require('./src/controllers/usersController');
 
@@ -9,7 +10,10 @@ const auth = require('./src/middlewares/auth');
 const userRoutes = require('./src/routes/usersRoutes');
 const cardRoutes = require('./src/routes/cardsRoutes');
 
+const NotFoundError = require('./src/errors/NotFoundError');
+
 const errorMessage = 'Произошла ошибка';
+const notFoundErrorMessage = 'Роут не найден';
 
 const { PORT = 3000 } = process.env;
 const app = express();
@@ -24,20 +28,35 @@ app.use((req, res, next) => {
   next();
 });
 
-app.post('/signin', login);
-app.post('/signup', createUser);
+app.post('/signin', celebrate({
+  body: Joi.object().keys({
+    email: Joi.string().email({ tlds: { allow: false } }).required(),
+    password: Joi.string().required(),
+  }),
+}), login);
+
+app.post('/signup', celebrate({
+  body: Joi.object().keys({
+    name: Joi.string().min(2).max(30),
+    about: Joi.string().min(2).max(30),
+    avatar: Joi.string().pattern(/(?:https?):\/\/(\w+:?\w*)?(\S+)(:\d+)?(\.\w{2,3})(\/|\/([\w#!:.?+=&%!\-/]))?/),
+    email: Joi.string().email({ tlds: { allow: false } }).required(),
+    password: Joi.string().required(),
+  }),
+}), createUser);
 
 app.use(auth);
 
 app.use('/', userRoutes);
 app.use('/', cardRoutes);
 app.use('/', (req, res) => {
-  res.status(404).send({ message: 'Роут не найден' });
+  throw new NotFoundError(notFoundErrorMessage);
 });
 
 app.use((err, req, res, next) => {
   const { statusCode = 500, message } = err;
   res.status(statusCode).send({ message: statusCode === 500 ? errorMessage : message });
+  next();
 });
 
 app.listen(PORT, () => {

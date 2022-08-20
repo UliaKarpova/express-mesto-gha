@@ -3,7 +3,6 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/user');
 const NotFoundError = require('../errors/NotFoundError');
 const UncorrectDataError = require('../errors/UncorrectDataError');
-const UncorrectEmailOrPasswordError = require('../errors/UncorrectEmailOrPasswordError');
 const UserAlreadyExistsError = require('../errors/UserAlreadyExistsError');
 
 const uncorrectDataErrorMessage = 'Переданы некорректные данные';
@@ -13,30 +12,28 @@ const userAlreadyExistsMessage = 'Пользователь с таким email �
 
 module.exports.login = (req, res, next) => {
   const { email, password } = req.body;
-  if (!email || !password) {
-    throw new UncorrectDataError(uncorrectDataErrorMessage);
-  }
   User.findUserByCredentials(email, password)
     .then((user) => {
       const token = jwt.sign({ _id: user._id }, 'c0a184a583f9db94dffbe4b3eff23c23e4ed8272b2ea41de86a92ba4bf9213df');
       res.cookie('jwt', token, {
         maxAge: 3600000 * 24 * 7,
         httpOnly: true,
-      }).end();
+      });
+      res.send({ message: 'Аутентификация прошла успешно' });
     })
-    .catch(() => {
-      throw new UncorrectEmailOrPasswordError(uncorrectEmailOrPasswordMessage);
-    })
-    .catch(next);
+    .catch((err) => {
+      if (err.name === 'ValidationError') {
+        next(new UncorrectDataError(uncorrectEmailOrPasswordMessage));
+      } else {
+        next(err);
+      }
+    });
 };
 
 module.exports.createUser = (req, res, next) => {
   const {
-    name, about, avatar, email, password,
+    name, about, avatar, email,
   } = req.body;
-  if (!email || !password) {
-    throw new UncorrectDataError(uncorrectDataErrorMessage);
-  }
   bcrypt.hash(req.body.password, 10)
     .then((hash) => User.create({
       name,
@@ -45,18 +42,22 @@ module.exports.createUser = (req, res, next) => {
       email,
       password: hash,
     }))
-    .then((user) => {
-      res.status(200).send({ user }).end();
+    .then(() => {
+      res.status(200).send({
+        data: {
+          name, about, avatar, email,
+        },
+      }).end();
     })
     .catch((err) => {
       if (err.code === 11000) {
-        throw new UserAlreadyExistsError(userAlreadyExistsMessage);
+        next(new UserAlreadyExistsError(userAlreadyExistsMessage));
+      } else if (err.name === 'ValidationError') {
+        next(new UncorrectDataError(uncorrectDataErrorMessage));
+      } else {
+        next(err);
       }
-      if (err.name === 'ValidationError') {
-        throw new UncorrectDataError(uncorrectDataErrorMessage);
-      }
-    })
-    .catch(next);
+    });
 };
 
 module.exports.getUsers = (req, res, next) => {
@@ -75,10 +76,11 @@ module.exports.getUserById = (req, res, next) => {
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        throw new UncorrectDataError(uncorrectDataErrorMessage);
+        next(new UncorrectDataError(uncorrectDataErrorMessage));
+      } else {
+        next(err);
       }
-    })
-    .catch(next);
+    });
 };
 
 module.exports.updateUserInfo = (req, res, next) => {
@@ -92,10 +94,11 @@ module.exports.updateUserInfo = (req, res, next) => {
     .then((user) => res.send({ user }))
     .catch((err) => {
       if (err.name === 'CastError' || err.name === 'ValidationError') {
-        throw new UncorrectDataError(uncorrectDataErrorMessage);
+        next(new UncorrectDataError(uncorrectDataErrorMessage));
+      } else {
+        next(err);
       }
-    })
-    .catch(next);
+    });
 };
 
 module.exports.updateUserAvatar = (req, res, next) => {
@@ -110,10 +113,11 @@ module.exports.updateUserAvatar = (req, res, next) => {
     })
     .catch((err) => {
       if (err.name === 'CastError' || err.name === 'ValidationError') {
-        throw new UncorrectDataError(uncorrectDataErrorMessage);
+        next(new UncorrectDataError(uncorrectDataErrorMessage));
+      } else {
+        next(err);
       }
-    })
-    .catch(next);
+    });
 };
 
 module.exports.getUserInfo = (req, res, next) => {
@@ -123,8 +127,6 @@ module.exports.getUserInfo = (req, res, next) => {
         throw new NotFoundError(notFoundErrorMessage);
       }
       res.send(user);
-    })
-    .catch(() => {
     })
     .catch(next);
 };

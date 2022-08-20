@@ -7,8 +7,8 @@ const {
 
 cardRoutes.post('/cards', celebrate({
   body: Joi.object().keys({
-    name: Joi.string().min(2).max(30),
-    link: Joi.string(),
+    name: Joi.string().min(2).max(30).required(),
+    link: Joi.string().pattern(/(?:https?):\/\/(\w+:?\w*)?(\S+)(:\d+)?(\.\w{2,3})(\/|\/([\w#!:.?+=&%!\-/]))?/).required(),
   }),
 }), createCard);
 

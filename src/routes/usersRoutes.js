@@ -6,11 +6,7 @@ const {
 
 userRoutes.get('/users', getUsers);
 
-userRoutes.get('/users/me', celebrate({
-  body: Joi.object().keys({
-    _id: Joi.string().alphanum().length(24).hex(),
-  }),
-}), getUserInfo);
+userRoutes.get('/users/me', getUserInfo);
 
 userRoutes.get('/users/:userId', celebrate({
   params: Joi.object().keys({
@@ -27,7 +23,7 @@ userRoutes.patch('/users/me', celebrate({
 
 userRoutes.patch('/users/me/avatar', celebrate({
   body: Joi.object().keys({
-    avatar: Joi.string(),
+    avatar: Joi.string().pattern(/(?:https?):\/\/(\w+:?\w*)?(\S+)(:\d+)?(\.\w{2,3})(\/|\/([\w#!:.?+=&%!\-/]))?/).required(),
   }),
 }), updateUserAvatar);
 

@@ -15,10 +15,11 @@ module.exports.createCard = (req, res, next) => {
     })
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        throw new UncorrectDataError(uncorrectDataErrorMessage);
+        next(new UncorrectDataError(uncorrectDataErrorMessage));
+      } else {
+        next(err);
       }
-    })
-    .catch(next);
+    });
 };
 
 module.exports.getCards = (req, res, next) => {
@@ -28,22 +29,20 @@ module.exports.getCards = (req, res, next) => {
 };
 
 module.exports.deleteCardById = (req, res, next) => {
-  Card.findByIdAndRemove(req.params.cardId)
+  Card.findById(req.params.cardId)
+    .orFail(() => {
+      throw new NotFoundError(notFoundErrorMessage);
+    })
     .then((card) => {
-      if (!card) {
-        throw new NotFoundError(notFoundErrorMessage);
-      }
-      if (card.owner !== req.user._id) {
+      if (!card.owner.equals(req.user._id)) {
         throw new ForbiddenDeleteCardError(forbiddenDeleteCardErrorMessage);
       }
-      res.send(card);
+      return card.remove()
+        .then(() => res.send({ message: 'Карточка удалена' }));
     })
     .catch((err) => {
-      if (err.name === 'CastError') {
-        throw new UncorrectDataError(uncorrectDataErrorMessage);
-      }
-    })
-    .catch(next);
+      next(err);
+    });
 };
 
 module.exports.likeCard = (req, res, next) => {
@@ -62,10 +61,11 @@ module.exports.likeCard = (req, res, next) => {
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        throw new UncorrectDataError(uncorrectDataErrorMessage);
+        next(new UncorrectDataError(uncorrectDataErrorMessage));
+      } else {
+        next(err);
       }
-    })
-    .catch(next);
+    });
 };
 
 module.exports.dislikeCard = (req, res, next) => {
@@ -84,8 +84,9 @@ module.exports.dislikeCard = (req, res, next) => {
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        throw new UncorrectDataError(uncorrectDataErrorMessage);
+        next(new UncorrectDataError(uncorrectDataErrorMessage));
+      } else {
+        next(err);
       }
-    })
-    .catch(next);
+    });
 };
