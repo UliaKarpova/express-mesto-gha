@@ -35,7 +35,7 @@ app.use('/', (req, res) => {
   res.status(404).send({ message: 'Роут не найден' });
 });
 
-app.use((err, req, res) => {
+app.use((err, req, res, next) => {
   const { statusCode = 500, message } = err;
   res.status(statusCode).send({ message: statusCode === 500 ? errorMessage : message });
 });

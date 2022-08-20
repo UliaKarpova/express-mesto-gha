@@ -16,6 +16,5 @@ module.exports = (req, res, next) => {
     throw new NeedAutarizationError(needAutarizationErrorMessage);
   }
   req.user = payload;
-  /* console.log(req.user._id); */
   next();
 };
