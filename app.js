@@ -2,7 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cookieParser = require('cookie-parser');
 const { celebrate, Joi } = require('celebrate');
-
+const { errors } = require('celebrate');
 const { login, createUser } = require('./src/controllers/usersController');
 
 const auth = require('./src/middlewares/auth');
@@ -49,10 +49,11 @@ app.use(auth);
 
 app.use('/', userRoutes);
 app.use('/', cardRoutes);
-app.use('/', (req, res) => {
+app.use('/', () => {
   throw new NotFoundError(notFoundErrorMessage);
 });
 
+app.use(errors());
 app.use((err, req, res, next) => {
   const { statusCode = 500, message } = err;
   res.status(statusCode).send({ message: statusCode === 500 ? errorMessage : message });

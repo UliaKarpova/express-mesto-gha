@@ -4,6 +4,7 @@ const User = require('../models/user');
 const NotFoundError = require('../errors/NotFoundError');
 const UncorrectDataError = require('../errors/UncorrectDataError');
 const UserAlreadyExistsError = require('../errors/UserAlreadyExistsError');
+const NeedAutarizationError = require('../errors/NeedAutarizationError');
 
 const uncorrectDataErrorMessage = 'Переданы некорректные данные';
 const notFoundErrorMessage = 'Пользователь не найден';
@@ -23,7 +24,7 @@ module.exports.login = (req, res, next) => {
     })
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        next(new UncorrectDataError(uncorrectEmailOrPasswordMessage));
+        next(new NeedAutarizationError(uncorrectEmailOrPasswordMessage));
       } else {
         next(err);
       }
