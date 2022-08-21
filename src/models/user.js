@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const validator = require('validator');
+const NeedAutarizationError = require('../errors/NeedAutarizationError');
 
 const uncorrectEmailOrPasswordMessage = 'Неправильные почта или пароль';
 
@@ -50,12 +51,12 @@ userSchema.statics.findUserByCredentials = function (email, password) {
   return this.findOne({ email }).select('+password')
     .then((user) => {
       if (!user) {
-        return Promise.reject(new Error(uncorrectEmailOrPasswordMessage));
+        return Promise.reject(new NeedAutarizationError(uncorrectEmailOrPasswordMessage));
       }
       return bcrypt.compare(password, user.password)
         .then((matched) => {
           if (!matched) {
-            return Promise.reject(new Error(uncorrectEmailOrPasswordMessage));
+            return Promise.reject(new NeedAutarizationError(uncorrectEmailOrPasswordMessage));
           }
           return user;
         });
